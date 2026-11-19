@@ -16,9 +16,18 @@ jobs:
 
       - name: Extract Project
         run: |
+          mkdir -p app_source
           unzip -q Gujarat_Vehicle_Market_Chat_Ready.zip -d app_source
+
           PROJECT_DIR=$(dirname "$(find app_source -name pubspec.yaml -print -quit)")
+
+          if [ -z "$PROJECT_DIR" ]; then
+            echo "ERROR: pubspec.yaml not found"
+            exit 1
+          fi
+
           echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
+          echo "Project found: $PROJECT_DIR"
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -30,6 +39,19 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: stable
+
+      - name: Check Android Files
+        run: |
+          cd "$PROJECT_DIR"
+
+          if [ ! -f android/app/build.gradle ] && [ ! -f android/app/build.gradle.kts ]; then
+            echo "Android Gradle files missing."
+            flutter create --platforms=android .
+          fi
+
+          echo "Checking Android project:"
+          ls -la android
+          ls -la android/app
 
       - name: Install Dependencies
         run: |
@@ -46,3 +68,4 @@ jobs:
         with:
           name: Gujarat-Vehicle-Market-APK
           path: ${{ env.PROJECT_DIR }}/build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
