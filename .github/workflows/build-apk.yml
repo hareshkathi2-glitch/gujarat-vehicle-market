@@ -287,7 +287,7 @@ class _BuyVehiclesPageState extends State<BuyVehiclesPage> {
                     : const CircleAvatar(child: Icon(Icons.directions_car)),
                 title: Text(data['title'] ?? tr('વાહન')),
                 subtitle: Text('₹ ${data['price'] ?? '-'} • ${data['location'] ?? '-'}\n${data['description'] ?? ''}'),
-                isThreeLine: true,trailing: isOwner
+trailing: isOwner
                     ? IconButton(tooltip: tr('મારી જાહેરાત ડિલીટ કરો'), icon: const Icon(Icons.delete_outline), onPressed: () => _delete(context, doc.reference))
                     : IconButton(
                         tooltip: tr('ચેટ કરો'), icon: const Icon(Icons.chat_bubble_outline),
@@ -521,4 +521,4 @@ class _ChatPageState extends State<ChatPage> {
     ]),
   );
 }
-
+isThreeLine: true,
