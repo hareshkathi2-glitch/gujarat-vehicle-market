@@ -1,4 +1,3 @@
-name: Build Gujarat Vehicle Market APK
 
 on:
   workflow_dispatch:
@@ -70,17 +69,5 @@ jobs:
       - name: Install Dependencies
         run: |
           cd "$PROJECT_DIR"
-          flutter pub get
-
-           - name: Check Android Files
-        run: |
-          cd "$PROJECT_DIR"
-
-          if [ ! -f android/app/build.gradle ] && [ ! -f android/app/build.gradle.kts ]; then
-            echo "Android files missing. Creating Android project..."
-            flutter create --platforms=android .
-          fi
-
-          echo "Android project ready:"
-          ls -la android
-          ls -la android/app
+          flutter pub ge
+          
