@@ -17,23 +17,27 @@ jobs:
       - name: Extract Project
         run: |
           mkdir -p app_source
+
           unzip -q Gujarat_Vehicle_Market_Chat_Ready.zip -d app_source
 
-          PROJECT_DIR=$(dirname "$(find app_source -name pubspec.yaml -print -quit)")
+          PUBSPEC=$(find app_source -name pubspec.yaml -print -quit)
 
-          if [ -z "$PROJECT_DIR" ]; then
+          if [ -z "$PUBSPEC" ]; then
             echo "ERROR: pubspec.yaml not found"
             exit 1
           fi
 
-          echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
+          PROJECT_DIR=$(dirname "$PUBSPEC")
+
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+
           echo "Project found: $PROJECT_DIR"
 
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: '17'
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -45,13 +49,23 @@ jobs:
           cd "$PROJECT_DIR"
 
           if [ ! -f android/app/build.gradle ] && [ ! -f android/app/build.gradle.kts ]; then
-            echo "Android Gradle files missing."
-            flutter create --platforms=android .
+            echo "ERROR: Android Gradle files missing."
+            echo "Android project setup is required."
+            exit 1
           fi
 
-          echo "Checking Android project:"
-          ls -la android
-          ls -la android/app
+          echo "Android files found."
+
+      - name: Check Firebase Configuration
+        run: |
+          cd "$PROJECT_DIR"
+
+          if [ ! -f android/app/google-services.json ]; then
+            echo "ERROR: google-services.json missing"
+            exit 1
+          fi
+
+          echo "Firebase configuration found."
 
       - name: Install Dependencies
         run: |
