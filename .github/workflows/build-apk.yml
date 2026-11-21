@@ -9,10 +9,9 @@ branches:
 jobs:
 build:
 runs-on: ubuntu-latest
-
 steps:
-  - name: Checkout Repository
-    uses: actions/checkout@v4
+- name: Checkout Repository
+uses: actions/checkout@v4
 
   - name: Setup Java
     uses: actions/setup-java@v4
@@ -30,12 +29,10 @@ steps:
       mkdir -p app_source
       unzip -q Gujarat_Vehicle_Market_Chat_Ready.zip -d app_source
       PUBSPEC=$(find app_source -name pubspec.yaml -print -quit)
-
       if [ -z "$PUBSPEC" ]; then
         echo "pubspec.yaml not found"
         exit 1
       fi
-
       PROJECT_DIR=$(dirname "$PUBSPEC")
       echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
 
