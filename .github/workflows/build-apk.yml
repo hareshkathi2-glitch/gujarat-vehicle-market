@@ -2,85 +2,92 @@
 name: Build Gujarat Vehicle Market APK
 
 on:
-  workflow_dispatch:
-  push:
-    branches:
-      - main
+workflow_dispatch:
+push:
+branches:
+- main
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+build:
+runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+steps:
+  - name: Checkout Repository
+    uses: actions/checkout@v4
 
-      - name: Extract Project
-        run: |
-          mkdir -p app_source
-          unzip -q Gujarat_Vehicle_Market_Chat_Ready.zip -d app_source
+  - name: Extract Flutter Project
+    run: |
+      mkdir -p app_source
+      unzip -q Gujarat_Vehicle_Market_Chat_Ready.zip -d app_source
 
-          PUBSPEC=$(find app_source -name pubspec.yaml -print -quit)
+      PUBSPEC=$(find app_source -name pubspec.yaml -print -quit)
 
-          if [ -z "$PUBSPEC" ]; then
-            echo "ERROR: pubspec.yaml not found"
-            exit 1
-          fi
+      if [ -z "$PUBSPEC" ]; then
+        echo "ERROR: pubspec.yaml not found"
+        exit 1
+      fi
 
-          PROJECT_DIR=$(dirname "$PUBSPEC")
-          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+      PROJECT_DIR=$(dirname "$PUBSPEC")
+      echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
 
-          echo "Project found: $PROJECT_DIR"
+      echo "Flutter project found: $PROJECT_DIR"
 
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
+  - name: Setup Java
+    uses: actions/setup-java@v4
+    with:
+      distribution: temurin
+      java-version: '17'
 
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: stable
+  - name: Setup Flutter
+    uses: subosito/flutter-action@v2
+    with:
+      channel: stable
 
-      - name: Setup Android Project
-        run: |
-          cd "$PROJECT_DIR"
+  - name: Setup Android Project
+    run: |
+      cd "$PROJECT_DIR"
 
-          if [ ! -d android ]; then
-            flutter create --platforms=android .
-          fi
+      if [ ! -d android ]; then
+        flutter create --platforms=android \
+          --org com.gujaratvehiclemarket .
+      fi
 
-          if [ ! -f android/app/build.gradle ] && [ ! -f android/app/build.gradle.kts ]; then
-            echo "ERROR: Android Gradle files missing"
-            exit 1
-          fi
+      if [ ! -f android/app/build.gradle ] && [ ! -f android/app/build.gradle.kts ]; then
+        echo "ERROR: Android Gradle files missing"
+        exit 1
+      fi
 
-          echo "Android project ready"
+  - name: Set Package Name
+    run: |
+      cd "$PROJECT_DIR"
 
-      - name: Check Firebase
-        run: |
-          cd "$PROJECT_DIR"
+      echo "Checking Android package configuration"
 
-          if [ ! -f android/app/google-services.json ]; then
-            echo "ERROR: google-services.json missing"
-            exit 1
-          fi
+      if [ -f android/app/build.gradle ]; then
+        sed -i "s/applicationId .*/applicationId 'com.gujaratvehiclemarket.app'/" android/app/build.gradle
+      fi
 
-          echo "Firebase configuration found"
+  - name: Copy Firebase Configuration
+    run: |
+      cp "google-services (2).json" \
+        "$PROJECT_DIR/android/app/google-services.json"
 
-      - name: Install Dependencies
-        run: |
-          cd "$PROJECT_DIR"
-          flutter pub get
+      echo "Firebase configuration copied"
 
-      - name: Build APK
-        run: |
-          cd "$PROJECT_DIR"
-          flutter build apk --release
+  - name: Install Dependencies
+    run: |
+      cd "$PROJECT_DIR"
+      flutter pub get
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: Gujarat-Vehicle-Market-APK
-          path: ${{ env.PROJECT_DIR }}/build/app/outputs/flutter-apk/app-release.apk
+  - name: Build Release APK
+    run: |
+      cd "$PROJECT_DIR"
+      flutter build apk --release
+
+  - name: Upload APK
+    uses: actions/upload-artifact@v4
+    with:
+      name: Gujarat-Vehicle-Market-APK
+      path: ${{ env.PROJECT_DIR }}/build/app/outputs/flutter-apk/app-release.apk
+      if-no-files-found: error
+      retention-days: 7
