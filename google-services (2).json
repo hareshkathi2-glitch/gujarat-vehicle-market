@@ -1,0 +1,68 @@
+{
+  "project_info": {
+    "project_number": "956676048733",
+    "project_id": "gujarat-vehicle-market",
+    "storage_bucket": "gujarat-vehicle-market.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:956676048733:android:19e4a3c754c27455efcab4",
+        "android_client_info": {
+          "package_name": "com.gujaratvehiclemarket.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "956676048733-mov15bbr514glcme00tk5lk4qgsn475g.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBTxrHI2Hcaf-boWBEbMqHI0QUtnZkUvpY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "956676048733-mov15bbr514glcme00tk5lk4qgsn475g.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:956676048733:android:b7c07336c944e0a9efcab4",
+        "android_client_info": {
+          "package_name": "com.gvm.vehicle"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "956676048733-mov15bbr514glcme00tk5lk4qgsn475g.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBTxrHI2Hcaf-boWBEbMqHI0QUtnZkUvpY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "956676048733-mov15bbr514glcme00tk5lk4qgsn475g.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
