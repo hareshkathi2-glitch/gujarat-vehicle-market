@@ -1,10 +1,51 @@
+name: Build Gujarat Vehicle Market APK
 
-name: Test
-
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
 
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest
+
     steps:
-      - run: echo Hello
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Extract Project
+        run: |
+          mkdir -p app_source
+          unzip -q Gujarat_Vehicle_Market_Chat_Ready.zip -d app_source
+
+      - name: Build APK
+        run: |
+          PROJECT_DIR=$(find app_source -name pubspec.yaml -printf '%h\n' | head -n 1)
+
+          if [ -z "$PROJECT_DIR" ]; then
+            echo "Flutter project not found"
+            exit 1
+          fi
+
+          cd "$PROJECT_DIR"
+          flutter pub get
+          flutter build apk --release
+          cp build/app/outputs/flutter-apk/app-release.apk "$GITHUB_WORKSPACE/app-release.apk"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Gujarat-Vehicle-Market-APK
+          path: app-release.apk
