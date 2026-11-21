@@ -61,7 +61,7 @@ jobs:
             mkdir -p "$PROJECT_DIR/android/app"
             cp "$CONFIG" "$PROJECT_DIR/android/app/google-services.json"
           fi
-      - name: Disable Release Lint Tasks
+            - name: Disable Release Lint Tasks
         run: |
           cat >> "$PROJECT_DIR/android/build.gradle" <<'EOF'
 
@@ -73,7 +73,8 @@ jobs:
               }
           }
           EOF
-            - name: Build APK
+
+      - name: Build APK
         run: |
           cd "$PROJECT_DIR"
           flutter pub get
