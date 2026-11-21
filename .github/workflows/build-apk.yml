@@ -1,18 +1,14 @@
-name: Build Gujarat Vehicle Market APK
+name: Test APK Build
 
-'on':
+on:
 workflow_dispatch:
-push:
-branches:
-- main
 
 jobs:
-build:
+test:
 runs-on: ubuntu-latest
-
 steps:
-  - name: Checkout Repository
-    uses: actions/checkout@v4
+- name: Test
+run: echo "GitHub YAML Working"
 
   - name: Setup Java
     uses: actions/setup-java@v4
