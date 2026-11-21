@@ -28,24 +28,48 @@ jobs:
       - name: Extract Project
         run: |
           mkdir -p app_source
-          unzip -q Gujarat_Vehicle_Market_Chat_Ready.zip -d app_source
+          ZIP_FILE=$(find . -maxdepth 1 -name '*.zip' | head -n 1)
 
-      - name: Build APK
-        run: |
-          PROJECT_DIR=$(find app_source -name pubspec.yaml -printf '%h\n' | head -n 1)
-
-          if [ -z "$PROJECT_DIR" ]; then
-            echo "Flutter project not found"
+          if [ -z "$ZIP_FILE" ]; then
+            echo "ZIP file not found"
             exit 1
           fi
 
+          unzip -q "$ZIP_FILE" -d app_source
+
+      - name: Find Flutter Project
+        run: |
+          PUBSPEC=$(find app_source -name pubspec.yaml | head -n 1)
+
+          if [ -z "$PUBSPEC" ]; then
+            echo "pubspec.yaml not found"
+            exit 1
+          fi
+
+          echo "PROJECT_DIR=$(dirname "$PUBSPEC")" >> $GITHUB_ENV
+
+      - name: Generate Android Project
+        run: |
+          cd "$PROJECT_DIR"
+          flutter create --platforms=android --org com.gujaratvehiclemarket .
+
+      - name: Setup Firebase Config
+        run: |
+          CONFIG=$(find . -maxdepth 3 -name 'google-services*.json' | head -n 1)
+
+          if [ -n "$CONFIG" ]; then
+            mkdir -p "$PROJECT_DIR/android/app"
+            cp "$CONFIG" "$PROJECT_DIR/android/app/google-services.json"
+          fi
+
+      - name: Build APK
+        run: |
           cd "$PROJECT_DIR"
           flutter pub get
           flutter build apk --release
-          cp build/app/outputs/flutter-apk/app-release.apk "$GITHUB_WORKSPACE/app-release.apk"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Gujarat-Vehicle-Market-APK
-          path: app-release.apk
+          path: ${{ env.PROJECT_DIR }}/build/app/outputs/flutter-apk/app-release.apk
