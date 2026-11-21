@@ -73,14 +73,26 @@ jobs:
               }
           }
           EOF
-      - name: Build APK
+            - name: Build APK
         run: |
           cd "$PROJECT_DIR"
           flutter pub get
           flutter build apk --release
 
+          APK_PATH=$(find "$PROJECT_DIR" -type f -name "app-release.apk" | head -n 1)
+
+          if [ -z "$APK_PATH" ]; then
+            echo "ERROR: APK file not found"
+            find "$PROJECT_DIR" -name "*.apk"
+            exit 1
+          fi
+
+          mkdir -p "$GITHUB_WORKSPACE/apk"
+          cp "$APK_PATH" "$GITHUB_WORKSPACE/apk/app-release.apk"
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Gujarat-Vehicle-Market-APK
-          path: ${{ env.PROJECT_DIR }}/build/app/outputs/flutter-apk/app-release.apk
+          path: apk/app-release.apk
+        
