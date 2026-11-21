@@ -63,29 +63,36 @@ jobs:
           mkdir -p "$PROJECT_DIR/android/app"
           cp "$CONFIG" "$PROJECT_DIR/android/app/google-services.json"
 
-      - name: Configure Google Services
+            - name: Configure Google Services
         run: |
           python3 - <<'PY'
           import os
           import re
 
           p = os.environ["PROJECT_DIR"] + "/android/app"
-          files = ["build.gradle", "build.gradle.kts"]
 
-          for f in files:
+          for f in ["build.gradle", "build.gradle.kts"]:
               path = os.path.join(p, f)
+
               if os.path.exists(path):
                   s = open(path).read()
+
                   if "com.google.gms.google-services" not in s:
                       if f.endswith(".kts"):
                           plugin = '    id("com.google.gms.google-services") version "4.4.2"\n'
                       else:
                           plugin = '    id "com.google.gms.google-services" version "4.4.2"\n'
-                      s = re.sub(r'(plugins\s*\{\s*\n)', r'\1' + plugin, s, count=1)
-                      
-          path: ${{ env.PROJECT_DIR }}/build/app/outputs/flutter-apk/app-release.apk
 
-        - name: Get Dependencies
+                      s = re.sub(r'(plugins\s*\{\s*\n)', r'\1' + plugin, s, count=1)
+                      open(path, "w").write(s)
+
+                  break
+          PY
+
+      - name: Get Dependencies
+        run: |
+          cd "$PROJECT_DIR"
+          flutter pub get
         run: |
           cd "$PROJECT_DIR"
           flutter pub get
