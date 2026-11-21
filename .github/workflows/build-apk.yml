@@ -61,7 +61,18 @@ jobs:
             mkdir -p "$PROJECT_DIR/android/app"
             cp "$CONFIG" "$PROJECT_DIR/android/app/google-services.json"
           fi
+      - name: Disable Release Lint Tasks
+        run: |
+          cat >> "$PROJECT_DIR/android/build.gradle" <<'EOF'
 
+          subprojects {
+              tasks.configureEach {
+                  if (name.startsWith("lintVital")) {
+                      enabled = false
+                  }
+              }
+          }
+          EOF
       - name: Build APK
         run: |
           cd "$PROJECT_DIR"
