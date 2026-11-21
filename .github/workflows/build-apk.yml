@@ -82,16 +82,15 @@ jobs:
                       else:
                           plugin = '    id "com.google.gms.google-services" version "4.4.2"\n'
                       s = re.sub(r'(plugins\s*\{\s*\n)', r'\1' + plugin, s, count=1)
-                      open(path, "w").write(s)
-                  break
-          PY
+                      
+          path: ${{ env.PROJECT_DIR }}/build/app/outputs/flutter-apk/app-release.apk
 
-      - name: Get Dependencies
+        - name: Get Dependencies
         run: |
           cd "$PROJECT_DIR"
           flutter pub get
 
-            - name: Build APK
+      - name: Build APK
         run: |
           cd "$PROJECT_DIR"
           flutter build apk --release
@@ -100,6 +99,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Gujarat-Vehicle-Market-APK
-          path: ${{ env.PROJECT_DIR }}/build/app/outputs/flutter-apk/app-release.apk
-
-  
+          path: app_source/**/build/app/outputs/flutter-apk/app-release.apk
