@@ -174,7 +174,7 @@ jobs:
           flutter pub get
 
             - name: Build APK
-        run: |
+       run: |
           cd "$PROJECT_DIR"
           flutter build apk --release --no-pub
 
