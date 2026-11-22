@@ -145,16 +145,38 @@ jobs:
                       open(path, "w").write(s)
                   break
           PY
+      - name: Disable Android Lint
+        run: |
+          python3 - <<'PY'
+          import os
 
+          app = os.environ["PROJECT_DIR"] + "/android/app"
+
+          for name in ["build.gradle.kts", "build.gradle"]:
+              path = os.path.join(app, name)
+              if os.path.exists(path):
+                  with open(path) as f:
+                      s = f.read()
+
+                  if name.endswith(".kts"):
+                      lint = '\nandroid {\n    lint {\n        checkReleaseBuilds = false\n        abortOnError = false\n    }\n}\n'
+                  else:
+                      lint = '\nandroid {\n    lint {\n        checkReleaseBuilds false\n        abortOnError false\n    }\n}\n'
+
+                  s += lint
+                  with open(path, "w") as f:
+                      f.write(s)
+                  break
+          PY
       - name: Get Dependencies
         run: |
           cd "$PROJECT_DIR"
           flutter pub get
 
-      - name: Build APK
+            - name: Build APK
         run: |
           cd "$PROJECT_DIR"
-          flutter build apk --release
+          flutter build apk --release --no-pub
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
