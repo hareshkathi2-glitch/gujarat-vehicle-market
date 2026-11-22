@@ -29,7 +29,7 @@ jobs:
         run: |
           mkdir -p app_source
 
-          ZIP=$(find . -name "Gujarat_Vehicle_Market_Chat_Ready.zip" | head -n 1)
+          ZIP=$(find . -type f -iname "Gujarat_Vehicle_Market_Chat_Ready*.zip" | head -n 1)
 
           if [ -z "$ZIP" ]; then
             echo "Project ZIP not found"
