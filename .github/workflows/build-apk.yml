@@ -54,7 +54,7 @@ jobs:
 
       - name: Setup Firebase
         run: |
-          CONFIG=$(find app_source -name google-services.json | head -n 1)
+          CONFIG=$(find . -type f -name google-services.json | head -n 1)
 
           if [ -z "$CONFIG" ]; then
             echo "Firebase google-services.json missing"
