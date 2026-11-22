@@ -1,0 +1,16 @@
+Gujarat Vehicle Market — APK Build
+
+આ ZIP માં Flutter source code, Firebase Android config અને GitHub Actions build workflow છે.
+
+GitHub પર કરવાનું:
+1. ZIP extract કરીને અંદરના Gujarat_Vehicle_Market_Project ફોલ્ડરની બધી ફાઇલો તમારા GitHub repository ના root માં upload કરો.
+2. Repository નું default branch main અથવા master હોવું જોઈએ.
+3. GitHub માં Actions ખોલો.
+4. “Build Gujarat Vehicle Market APK” પસંદ કરો.
+5. “Run workflow” દબાવો.
+6. Build સફળ થયા પછી workflow run માં Artifacts વિભાગમાંથી Gujarat-Vehicle-Market-APK download કરો.
+
+Package name: com.gujaratvehiclemarket.app
+Firebase project: gujarat-vehicle-market
+
+નોંધ: આ build workflow તૈયાર છે, પરંતુ APK અહીં build/test થયેલી નથી. GitHub Actions પર build result આવ્યા પછી જ APK તૈયાર ગણાશે.

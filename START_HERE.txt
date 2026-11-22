@@ -1,0 +1,20 @@
+GUJARAT VEHICLE MARKET — PROJECT SOURCE
+
+This ZIP contains the latest combined Flutter source package.
+Included: Gujarati/Hindi/English UI, phone OTP login, separate Buy and Sell flows,
+car/bike/truck/tractor categories, search, price filters, up to 5 photos,
+optional seller phone/WhatsApp contact, and owner-only listing deletion rules.
+
+IMPORTANT: This is source code, not an installable APK yet.
+To make it run, you need a Firebase project and Flutter Android build setup.
+See README_GU.md for the steps. In particular:
+1. Create a Firebase project.
+2. Enable Phone Authentication, Firestore, and Storage.
+3. Install Flutter and FlutterFire CLI, then run: flutterfire configure
+4. Ensure Android app package registration is completed by FlutterFire.
+5. Publish firestore.rules and storage.rules in Firebase Console.
+6. Run: flutter pub get
+7. Run: flutter run
+8. To build APK: flutter build apk --release
+
+Never share Firebase private credentials or OTP codes publicly.

@@ -1,0 +1,40 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /vehicles/{vehicleId} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.category in ['કાર', 'બાઈક', 'ટ્રક', 'ટ્રેક્ટર']
+        && request.resource.data.title is string
+        && request.resource.data.price is int
+        && request.resource.data.price >= 0;
+      allow update: if request.auth != null
+        && resource.data.ownerUid == request.auth.uid
+        && request.resource.data.ownerUid == resource.data.ownerUid;
+      allow delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
+    }
+    match /chatRooms/{roomId} {
+      allow read: if request.auth != null && request.auth.uid in resource.data.participants;
+      allow create: if request.auth != null
+        && request.resource.data.participants is list
+        && request.resource.data.participants.size() == 2
+        && request.auth.uid in request.resource.data.participants;
+      allow update: if request.auth != null
+        && request.auth.uid in resource.data.participants
+        && request.resource.data.participants == resource.data.participants
+        && request.resource.data.vehicleId == resource.data.vehicleId;
+      allow delete: if false;
+      match /messages/{messageId} {
+        allow read: if request.auth != null
+          && request.auth.uid in get(/databases/$(database)/documents/chatRooms/$(roomId)).data.participants;
+        allow create: if request.auth != null
+          && request.resource.data.senderUid == request.auth.uid
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.auth.uid in get(/databases/$(database)/documents/chatRooms/$(roomId)).data.participants;
+        allow update, delete: if false;
+      }
+    }
+  }
+}
