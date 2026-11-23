@@ -38,12 +38,14 @@ jobs:
 
           unzip -q "$ZIP" -d app_source
 
-          PROJECT_DIR=$(dirname "$(find app_source -name pubspec.yaml -print -quit)")
+          PUBSPEC=$(find app_source -name pubspec.yaml -print -quit)
 
-          if [ ! -f "$PROJECT_DIR/pubspec.yaml" ]; then
+          if [ -z "$PUBSPEC" ]; then
             echo "Flutter project not found"
             exit 1
           fi
+
+          PROJECT_DIR=$(dirname "$PUBSPEC")
 
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
 
@@ -62,6 +64,7 @@ jobs:
           fi
 
           mkdir -p "$PROJECT_DIR/android/app"
+
           cp "$CONFIG" "$PROJECT_DIR/android/app/google-services.json"
 
       - name: Fix Package Name
@@ -138,45 +141,31 @@ jobs:
 
                   if "com.google.gms.google-services" not in s:
                       if name.endswith(".kts"):
-                          s = s.replace("plugins {", 'plugins {\n    id("com.google.gms.google-services")', 1)
+                          s = s.replace(
+                              "plugins {",
+                              'plugins {\n    id("com.google.gms.google-services")',
+                              1
+                          )
                       else:
-                          s = s.replace("plugins {", 'plugins {\n    id "com.google.gms.google-services"', 1)
+                          s = s.replace(
+                              "plugins {",
+                              'plugins {\n    id "com.google.gms.google-services"',
+                              1
+                          )
 
                       open(path, "w").write(s)
                   break
           PY
-      - name: Disable Android Lint
-        run: |
-          python3 - <<'PY'
-          import os
 
-          app = os.environ["PROJECT_DIR"] + "/android/app"
-
-          for name in ["build.gradle.kts", "build.gradle"]:
-              path = os.path.join(app, name)
-              if os.path.exists(path):
-                  with open(path) as f:
-                      s = f.read()
-
-                  if name.endswith(".kts"):
-                      lint = '\nandroid {\n    lint {\n        checkReleaseBuilds = false\n        abortOnError = false\n    }\n}\n'
-                  else:
-                      lint = '\nandroid {\n    lint {\n        checkReleaseBuilds false\n        abortOnError false\n    }\n}\n'
-
-                  s += lint
-                  with open(path, "w") as f:
-                      f.write(s)
-                  break
-          PY
       - name: Get Dependencies
         run: |
           cd "$PROJECT_DIR"
           flutter pub get
 
-            - name: Build APK
-       run: |
+      - name: Build APK
+        run: |
           cd "$PROJECT_DIR"
-          flutter build apk --release --no-pub
+          flutter build apk --release
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
