@@ -1,174 +1,79 @@
 name: Build Gujarat Vehicle Market APK
 
 on:
-  workflow_dispatch:
-  push:
-    branches:
-      - main
+workflow_dispatch:
+push:
+branches:
+- main
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+build:
+runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+steps:
+  - name: Checkout
+    uses: actions/checkout@v4
 
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
+  - name: Setup Java
+    uses: actions/setup-java@v4
+    with:
+      distribution: temurin
+      java-version: '17'
 
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: stable
+  - name: Setup Flutter
+    uses: subosito/flutter-action@v2
+    with:
+      channel: stable
 
-      - name: Extract Project ZIP
-        run: |
-          mkdir -p app_source
+  - name: Extract Project ZIP
+    run: |
+      mkdir -p app_source
+      ZIP=$(find . -type f -iname "Gujarat_Vehicle_Market_Chat_Ready*.zip" | head -n 1)
 
-          ZIP=$(find . -type f -iname "Gujarat_Vehicle_Market_Chat_Ready*.zip" | head -n 1)
+      if [ -z "$ZIP" ]; then
+        echo "Project ZIP not found"
+        exit 1
+      fi
 
-          if [ -z "$ZIP" ]; then
-            echo "Project ZIP not found"
-            exit 1
-          fi
+      unzip -q "$ZIP" -d app_source
+      PUBSPEC=$(find app_source -name pubspec.yaml -print -quit)
 
-          unzip -q "$ZIP" -d app_source
+      if [ -z "$PUBSPEC" ]; then
+        echo "Flutter project not found"
+        exit 1
+      fi
 
-          PUBSPEC=$(find app_source -name pubspec.yaml -print -quit)
+      echo "PROJECT_DIR=$(dirname "$PUBSPEC")" >> "$GITHUB_ENV"
 
-          if [ -z "$PUBSPEC" ]; then
-            echo "Flutter project not found"
-            exit 1
-          fi
+  - name: Create Android Project
+    run: |
+      cd "$PROJECT_DIR"
+      flutter create . --platforms=android
 
-          PROJECT_DIR=$(dirname "$PUBSPEC")
+  - name: Setup Firebase
+    run: |
+      CONFIG=$(find . -type f -name google-services.json | head -n 1)
 
-          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+      if [ -z "$CONFIG" ]; then
+        echo "Firebase configuration missing"
+        exit 1
+      fi
 
-      - name: Setup Android Project
-        run: |
-          cd "$PROJECT_DIR"
-          flutter create . --platforms=android
+      mkdir -p "$PROJECT_DIR/android/app"
+      cp "$CONFIG" "$PROJECT_DIR/android/app/google-services.json"
 
-      - name: Setup Firebase
-        run: |
-          CONFIG=$(find . -type f -name google-services.json | head -n 1)
+  - name: Get Dependencies
+    run: |
+      cd "$PROJECT_DIR"
+      flutter pub get
 
-          if [ -z "$CONFIG" ]; then
-            echo "Firebase google-services.json missing"
-            exit 1
-          fi
+  - name: Build APK
+    run: |
+      cd "$PROJECT_DIR"
+      flutter build apk --release
 
-          mkdir -p "$PROJECT_DIR/android/app"
-
-          cp "$CONFIG" "$PROJECT_DIR/android/app/google-services.json"
-
-      - name: Fix Package Name
-        run: |
-          python3 - <<'PY'
-          import os
-          import re
-
-          app = os.environ["PROJECT_DIR"] + "/android/app"
-          package = "com.gujaratvehiclemarket.app"
-
-          for name in ["build.gradle.kts", "build.gradle"]:
-              path = os.path.join(app, name)
-
-              if not os.path.exists(path):
-                  continue
-
-              s = open(path).read()
-
-              if name.endswith(".kts"):
-                  s = re.sub(
-                      r'namespace\s*=\s*"[^"]+"',
-                      f'namespace = "{package}"', s
-                  )
-                  s = re.sub(
-                      r'applicationId\s*=\s*"[^"]+"',
-                      f'applicationId = "{package}"', s
-                  )
-              else:
-                  s = re.sub(
-                      r'namespace\s+"[^"]+"',
-                      f'namespace "{package}"', s
-                  )
-                  s = re.sub(
-                      r'applicationId\s+"[^"]+"',
-                      f'applicationId "{package}"', s
-                  )
-
-              open(path, "w").write(s)
-              print("Package configured:", package)
-              break
-          else:
-              raise Exception("Android Gradle file not found")
-          PY
-
-      - name: Configure Google Services
-        run: |
-          python3 - <<'PY'
-          import os
-
-          android = os.environ["PROJECT_DIR"] + "/android"
-
-          settings = os.path.join(android, "settings.gradle.kts")
-
-          if os.path.exists(settings):
-              plugin = '    id("com.google.gms.google-services") version "4.4.2" apply false\n'
-          else:
-              settings = os.path.join(android, "settings.gradle")
-              plugin = '    id "com.google.gms.google-services" version "4.4.2" apply false\n'
-
-          s = open(settings).read()
-
-          if "com.google.gms.google-services" not in s:
-              s = s.replace("plugins {", "plugins {\n" + plugin, 1)
-              open(settings, "w").write(s)
-
-          app = os.path.join(android, "app")
-
-          for name in ["build.gradle.kts", "build.gradle"]:
-              path = os.path.join(app, name)
-
-              if os.path.exists(path):
-                  s = open(path).read()
-
-                  if "com.google.gms.google-services" not in s:
-                      if name.endswith(".kts"):
-                          s = s.replace(
-                              "plugins {",
-                              'plugins {\n    id("com.google.gms.google-services")',
-                              1
-                          )
-                      else:
-                          s = s.replace(
-                              "plugins {",
-                              'plugins {\n    id "com.google.gms.google-services"',
-                              1
-                          )
-
-                      open(path, "w").write(s)
-                  break
-          PY
-
-      - name: Get Dependencies
-        run: |
-          cd "$PROJECT_DIR"
-          flutter pub get
-
-      - name: Build APK
-        run: |
-          cd "$PROJECT_DIR"
-          flutter build apk --release
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: Gujarat-Vehicle-Market-APK
-          path: ${{ env.PROJECT_DIR }}/build/app/outputs/flutter-apk/app-release.apk
+  - name: Upload APK
+    uses: actions/upload-artifact@v4
+    with:
+      name: Gujarat-Vehicle-Market-APK
+      path: ${{ env.PROJECT_DIR }}/build/app/outputs/flutter-apk/app-release.apk
