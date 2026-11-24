@@ -47,9 +47,19 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleRelease -x lintVitalAnalyzeRelease
 
+      - name: Find APK
+        run: |
+          echo "Searching for APK..."
+          find . -type f -name "*.apk" -print
+
+          if ! find . -type f -name "*.apk" | grep -q .; then
+            echo "APK file not found"
+            exit 1
+          fi
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Gujarat-Vehicle-Market-APK
-          path: android/app/build/outputs/apk/release/app-release.apk
+          path: '**/*.apk'
           if-no-files-found: error
