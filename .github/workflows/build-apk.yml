@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Java
@@ -25,57 +25,27 @@ jobs:
         with:
           channel: stable
 
-      - name: Extract Project ZIP
+      - name: Create Android Project
         run: |
-          ZIP_FILE=$(find . -type f -name "Gujarat_Vehicle_Market_Chat_Ready.zip" | head -n 1)
-
-          if [ -z "$ZIP_FILE" ]; then
-            echo "Project ZIP not found"
-            exit 1
-          fi
-
-          mkdir -p app_source
-          unzip -o "$ZIP_FILE" -d app_source
-
-      - name: Find Flutter Project
-        run: |
-          PROJECT_DIR=$(find app_source -type f -name pubspec.yaml -print -quit | xargs dirname)
-
-          if [ -z "$PROJECT_DIR" ] || [ ! -f "$PROJECT_DIR/pubspec.yaml" ]; then
-            echo "Flutter project not found"
-            exit 1
-          fi
-
-          echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
-
-      - name: Generate Android Files
-        run: |
-          cd "$PROJECT_DIR"
           flutter create --platforms=android --org com.gujaratvehiclemarket .
 
-      - name: Setup Firebase File
+      - name: Prepare Main Dart
         run: |
-          FIREBASE_FILE=$(find . -type f -name google-services.json | head -n 1)
+          mkdir -p lib
+          cp main.dart lib/main.dart
 
-          if [ -n "$FIREBASE_FILE" ]; then
-            cp "$FIREBASE_FILE" "$PROJECT_DIR/android/app/google-services.json"
-          else
-            echo "Firebase google-services.json not found"
-          fi
+      - name: Setup Firebase
+        run: |
+          cp google-services.json android/app/google-services.json
 
       - name: Get Dependencies
-        run: |
-          cd "$PROJECT_DIR"
-          flutter pub get
+        run: flutter pub get
 
       - name: Build APK
-        run: |
-          cd "$PROJECT_DIR"
-          flutter build apk --release
+        run: flutter build apk --release
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Gujarat-Vehicle-Market-APK
-          path: app_source/**/build/app/outputs/flutter-apk/app-release.apk
-          if-no-files-found: error
+          path: build/app/outputs/flutter-apk/app-release.apk
