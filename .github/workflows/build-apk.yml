@@ -42,10 +42,14 @@ jobs:
         run: flutter pub get
 
       - name: Build APK
-        run: flutter build apk --release
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease -x lintVitalAnalyzeRelease
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Gujarat-Vehicle-Market-APK
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: android/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
