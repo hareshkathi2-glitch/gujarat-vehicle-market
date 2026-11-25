@@ -1,20 +1,526 @@
+import 'dart:io';
+
+import 'package:url_launcher/url_launcher.dart';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
 
-void main() {
-  runApp(const MyApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  // Run `flutterfire configure` and initialize with generated Firebase options.
+  await Firebase.initializeApp();
+  runApp(const VehicleMarketApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+const blue = Color(0xFF1457A6);
+
+String appLanguage = 'ગુજરાતી';
+final ValueNotifier<int> languageTick = ValueNotifier<int>(0);
+
+const Map<String, Map<String, String>> translations = {
+  'हिन्दी': {
+    'વાહન ખરીદો • વાહન વેચો':'वाहन खरीदें • वाहन बेचें','10 અંકનો મોબાઇલ નંબર લખો.':'10 अंकों का मोबाइल नंबर लिखें.','OTP મોકલી શકાયો નહીં.':'OTP नहीं भेजा जा सका.','OTP મોકલાયો છે.':'OTP भेज दिया गया है.','સમસ્યા આવી:':'समस्या हुई:','6 અંકનો OTP લખો.':'6 अंकों का OTP लिखें.','OTP સાચો નથી.':'OTP सही नहीं है.','મોબાઇલ નંબર':'मोबाइल नंबर','SMS દ્વારા આવેલ OTP':'SMS से मिला OTP','રાહ જુઓ...':'कृपया प्रतीक्षा करें...','OTP ચકાસો':'OTP सत्यापित करें','OTP મોકલો':'OTP भेजें','લૉગઆઉટ':'लॉग आउट','તમારું સ્વાગત છે!':'आपका स्वागत है!','વાહન ખરીદો':'वाहन खरीदें','વાહન વેચો':'वाहन बेचें','નિયમ: પોતાની જાહેરાતનો માલિક જ તેને ડિલીટ કરી શકશે.':'नियम: केवल विज्ञापन का मालिक ही उसे हटा सकता है.','નામ, મોડેલ અથવા શહેર શોધો':'नाम, मॉडल या शहर खोजें','શોધ સાફ કરો':'खोज साफ़ करें','ઓછામાં ઓછી કિંમત':'न्यूनतम कीमत','વધુમાં વધુ કિંમત':'अधिकतम कीमत','ક્રમ ગોઠવો:':'क्रम चुनें:','નવી જાહેરાત પહેલા':'नई लिस्टिंग पहले','ઓછી કિંમત પહેલા':'कम कीमत पहले','વધુ કિંમત પહેલા':'ज़्यादा कीमत पहले','કિંમત ફિલ્ટર સાફ કરો':'कीमत फ़िल्टर साफ़ करें','જાહેરાતો લોડ થઈ શકી નથી. Firebase સેટિંગ તપાસો.':'लिस्टिंग लोड नहीं हुई। Firebase सेटिंग जाँचें.','હાલમાં આ કેટેગરીમાં કોઈ જાહેરાત નથી.':'इस श्रेणी में अभी कोई लिस्टिंग नहीं है.','તમારી શોધ પ્રમાણે કોઈ વાહન મળ્યું નથી.':'आपकी खोज से कोई वाहन नहीं मिला.','વાહન':'वाहन','મારી જાહેરાત ડિલીટ કરો':'मेरी लिस्टिंग हटाएँ','જાહેરાત ડિલીટ કરવી છે?':'क्या लिस्टिंग हटानी है?','આ જાહેરાત કાયમી રીતે દૂર થશે.':'यह लिस्टिंग स्थायी रूप से हट जाएगी.','રદ કરો':'रद्द करें','ડિલીટ':'हटाएँ','ફક્ત જાહેરાતનો માલિક જ તેને ડિલીટ કરી શકે છે.':'केवल लिस्टिंग का मालिक इसे हटा सकता है.','વાહનનો પ્રકાર':'वाहन का प्रकार','વાહનનું નામ / મોડેલ':'वाहन का नाम / मॉडल','કિંમત (રૂપિયામાં)':'कीमत (रुपये में)','શહેર / ગામ':'शहर / गाँव','વાહનની માહિતી':'वाहन की जानकारी','વાહનના ફોટા પસંદ કરો (વધુમાં વધુ 5)':'वाहन की तस्वीरें चुनें (अधिकतम 5)','વધુમાં વધુ 5 ફોટા પસંદ કરી શકાય.':'अधिकतम 5 तस्वीरें चुन सकते हैं.','ફોટા પસંદ થઈ શક્યા નહીં:':'तस्वीरें नहीं चुनी जा सकीं:','તમારી જાહેરાત સફળતાપૂર્વક ઉમેરાઈ.':'आपकी लिस्टिंग सफलतापूर्वक जोड़ दी गई.','જાહેરાત સેવ થઈ નથી:':'लिस्टिंग सेव नहीं हुई:','આ માહિતી લખો.':'यह जानकारी भरें.','યોગ્ય કિંમત લખો.':'सही कीमत लिखें.','જાહેરાત ઉમેરો':'लिस्टिंग जोड़ें','સેવ થઈ રહ્યું છે...':'सेव हो रहा है...','કાર':'कार','બાઈક':'बाइक','ટ્રક':'ट्रक','ટ્રેક્ટર':'ट्रैक्टर','ભાષા':'भाषा','વેચનારનો સંપર્ક નંબર (વૈકલ્પિક)':'विक्रेता का संपर्क नंबर (वैकल्पिक)','આ નંબર ખરીદદારોને દેખાશે.':'यह नंबर खरीदारों को दिखाई देगा.','કૉલ કરો':'कॉल करें','WhatsApp કરો':'WhatsApp करें','સંપર્ક ઉપલબ્ધ નથી.':'संपर्क उपलब्ध नहीं है.','યોગ્ય 10 અંકનો નંબર લખો.':'सही 10 अंकों का नंबर लिखें.','ચેટ કરો':'चैट करें','સંદેશ લખો':'संदेश लिखें','મેસેજ મોકલો':'भेजें','ચેટ શરૂ કરો':'चैट शुरू करें','હજુ કોઈ સંદેશ નથી.':'अभी कोई संदेश नहीं है.','વાહનના વેચનાર સાથે વાત કરો':'विक्रेता से चैट करें'
+  },
+  'English': {
+    'વાહન ખરીદો • વાહન વેચો':'Buy Vehicles • Sell Vehicles','10 અંકનો મોબાઇલ નંબર લખો.':'Enter a 10-digit mobile number.','OTP મોકલી શકાયો નહીં.':'Could not send OTP.','OTP મોકલાયો છે.':'OTP sent.','સમસ્યા આવી:':'An error occurred:','6 અંકનો OTP લખો.':'Enter the 6-digit OTP.','OTP સાચો નથી.':'Incorrect OTP.','મોબાઇલ નંબર':'Mobile number','SMS દ્વારા આવેલ OTP':'OTP received by SMS','રાહ જુઓ...':'Please wait...','OTP ચકાસો':'Verify OTP','OTP મોકલો':'Send OTP','લૉગઆઉટ':'Log out','તમારું સ્વાગત છે!':'Welcome!','વાહન ખરીદો':'Buy Vehicle','વાહન વેચો':'Sell Vehicle','નિયમ: પોતાની જાહેરાતનો માલિક જ તેને ડિલીટ કરી શકશે.':'Rule: Only the listing owner can delete their listing.','નામ, મોડેલ અથવા શહેર શોધો':'Search name, model or city','શોધ સાફ કરો':'Clear search','ઓછામાં ઓછી કિંમત':'Minimum price','વધુમાં વધુ કિંમત':'Maximum price','ક્રમ ગોઠવો:':'Sort by:','નવી જાહેરાત પહેલા':'Newest first','ઓછી કિંમત પહેલા':'Lowest price first','વધુ કિંમત પહેલા':'Highest price first','કિંમત ફિલ્ટર સાફ કરો':'Clear price filters','જાહેરાતો લોડ થઈ શકી નથી. Firebase સેટિંગ તપાસો.':'Could not load listings. Check Firebase settings.','હાલમાં આ કેટેગરીમાં કોઈ જાહેરાત નથી.':'There are no listings in this category yet.','તમારી શોધ પ્રમાણે કોઈ વાહન મળ્યું નથી.':'No vehicles match your search.','વાહન':'Vehicle','મારી જાહેરાત ડિલીટ કરો':'Delete my listing','જાહેરાત ડિલીટ કરવી છે?':'Delete this listing?','આ જાહેરાત કાયમી રીતે દૂર થશે.':'This listing will be permanently removed.','રદ કરો':'Cancel','ડિલીટ':'Delete','ફક્ત જાહેરાતનો માલિક જ તેને ડિલીટ કરી શકે છે.':'Only the listing owner can delete it.','વાહનનો પ્રકાર':'Vehicle type','વાહનનું નામ / મોડેલ':'Vehicle name / model','કિંમત (રૂપિયામાં)':'Price (INR)','શહેર / ગામ':'City / village','વાહનની માહિતી':'Vehicle details','વાહનના ફોટા પસંદ કરો (વધુમાં વધુ 5)':'Choose vehicle photos (up to 5)','વધુમાં વધુ 5 ફોટા પસંદ કરી શકાય.':'You can choose up to 5 photos.','ફોટા પસંદ થઈ શક્યા નહીં:':'Could not choose photos:','તમારી જાહેરાત સફળતાપૂર્વક ઉમેરાઈ.':'Your listing was added successfully.','જાહેરાત સેવ થઈ નથી:':'Listing could not be saved:','આ માહિતી લખો.':'Enter this information.','યોગ્ય કિંમત લખો.':'Enter a valid price.','જાહેરાત ઉમેરો':'Add listing','સેવ થઈ રહ્યું છે...':'Saving...','કાર':'Car','બાઈક':'Bike','ટ્રક':'Truck','ટ્રેક્ટર':'Tractor','ભાષા':'Language','વેચનારનો સંપર્ક નંબર (વૈકલ્પિક)':'Seller contact number (optional)','આ નંબર ખરીદદારોને દેખાશે.':'This number will be visible to buyers.','કૉલ કરો':'Call','WhatsApp કરો':'WhatsApp','સંપર્ક ઉપલબ્ધ નથી.':'Contact details are unavailable.','યોગ્ય 10 અંકનો નંબર લખો.':'Enter a valid 10-digit number.','ચેટ કરો':'Chat','સંદેશ લખો':'Type a message','મેસેજ મોકલો':'Send','ચેટ શરૂ કરો':'Start chat','હજુ કોઈ સંદેશ નથી.':'No messages yet.','વાહનના વેચનાર સાથે વાત કરો':'Chat with seller'
+  }
+};
+String tr(String gu) => translations[appLanguage]?[gu] ?? gu;
+String categoryLabel(String gu) => tr(gu);
+
+class LanguageMenu extends StatelessWidget {
+  const LanguageMenu({super.key});
+  @override
+  Widget build(BuildContext context) => PopupMenuButton<String>(
+    tooltip: tr('ભાષા'), icon: const Icon(Icons.language),
+    onSelected: (value) { appLanguage = value; languageTick.value++; },
+    itemBuilder: (_) => const [
+      PopupMenuItem(value: 'ગુજરાતી', child: Text('ગુજરાતી')),
+      PopupMenuItem(value: 'हिन्दी', child: Text('हिन्दी')),
+      PopupMenuItem(value: 'English', child: Text('English')),
+    ],
+  );
+}
+
+const categories = ['કાર', 'બાઈક', 'ટ્રક', 'ટ્રેક્ટર'];
+
+class VehicleMarketApp extends StatelessWidget {
+  const VehicleMarketApp({super.key});
+  @override
+  Widget build(BuildContext context) => ValueListenableBuilder<int>(
+    valueListenable: languageTick,
+    builder: (context, _, __) => MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Gujarat Vehicle Market',
+      theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: blue), useMaterial3: true),
+      home: const PhoneLoginPage(),
+    ),
+  );
+}
+
+class PhoneLoginPage extends StatefulWidget {
+  const PhoneLoginPage({super.key});
+  @override
+  State<PhoneLoginPage> createState() => _PhoneLoginPageState();
+}
+
+class _PhoneLoginPageState extends State<PhoneLoginPage> {
+  final phone = TextEditingController();
+  final otp = TextEditingController();
+  String? verificationId;
+  bool codeSent = false, busy = false;
+  String message = '';
+
+  Future<void> sendOtp() async {
+    final number = phone.text.trim();
+    if (!RegExp(r'^\d{10}$').hasMatch(number)) {
+      setState(() => message = tr('10 અંકનો મોબાઇલ નંબર લખો.')); return;
+    }
+    setState(() { busy = true; message = ''; });
+    try {
+      await FirebaseAuth.instance.verifyPhoneNumber(
+        phoneNumber: '+91$number',
+        verificationCompleted: (credential) async {
+          await FirebaseAuth.instance.signInWithCredential(credential);
+          if (mounted) _openHome();
+        },
+        verificationFailed: (error) {
+          if (mounted) setState(() { busy = false; message = error.message ?? tr('OTP મોકલી શકાયો નહીં.'); });
+        },
+        codeSent: (id, token) {
+          if (mounted) setState(() { verificationId = id; codeSent = true; busy = false; message = tr('OTP મોકલાયો છે.'); });
+        },
+        codeAutoRetrievalTimeout: (id) => verificationId = id,
+      );
+    } catch (e) {
+      if (mounted) setState(() { busy = false; message = '${tr('સમસ્યા આવી:')} $e'; });
+    }
+  }
+
+  Future<void> verifyOtp() async {
+    if (verificationId == null || otp.text.trim().length != 6) {
+      setState(() => message = tr('6 અંકનો OTP લખો.')); return;
+    }
+    setState(() { busy = true; message = ''; });
+    try {
+      final credential = PhoneAuthProvider.credential(verificationId: verificationId!, smsCode: otp.text.trim());
+      await FirebaseAuth.instance.signInWithCredential(credential);
+      if (mounted) _openHome();
+    } on FirebaseAuthException catch (e) {
+      if (mounted) setState(() => message = e.message ?? tr('OTP સાચો નથી.'));
+    } finally { if (mounted) setState(() => busy = false); }
+  }
+
+  void _openHome() => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage()));
+  @override
+  void dispose() { phone.dispose(); otp.dispose(); super.dispose(); }
+  @override
+  Widget build(BuildContext context) => Scaffold(body: SafeArea(child: Center(child: SingleChildScrollView(
+    padding: const EdgeInsets.all(24), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      const Icon(Icons.agriculture, size: 72, color: blue), const SizedBox(height: 12),
+      const Text('Gujarat Vehicle Market', textAlign: TextAlign.center, style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold)),
+      Align(alignment: Alignment.centerRight, child: const LanguageMenu()),
+      Text(tr('વાહન ખરીદો • વાહન વેચો'), textAlign: TextAlign.center, style: TextStyle(fontSize: 17)),
+      const SizedBox(height: 32),
+      TextField(controller: phone, keyboardType: TextInputType.phone, maxLength: 10,
+        decoration: InputDecoration(labelText: tr('મોબાઇલ નંબર'), prefixText: '+91 ', border: OutlineInputBorder())),
+      if (codeSent) TextField(controller: otp, keyboardType: TextInputType.number, maxLength: 6,
+        decoration: InputDecoration(labelText: tr('SMS દ્વારા આવેલ OTP'), border: OutlineInputBorder())),
+      const SizedBox(height: 12),
+      FilledButton(onPressed: busy ? null : (codeSent ? verifyOtp : sendOtp),
+        child: Text(busy ? tr('રાહ જુઓ...') : (codeSent ? tr('OTP ચકાસો') : tr('OTP મોકલો')))),
+      if (message.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 12), child: Text(message, textAlign: TextAlign.center)),
+    ]),
+  ))));
+}
+
+class HomePage extends StatelessWidget {
+  const HomePage({super.key});
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Gujarat Vehicle Market'), actions: [
+      const LanguageMenu(),
+      IconButton(tooltip: tr('લૉગઆઉટ'), onPressed: () async { await FirebaseAuth.instance.signOut(); if (context.mounted) Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const PhoneLoginPage()), (_) => false); }, icon: const Icon(Icons.logout)),
+    ]),
+    body: ListView(padding: const EdgeInsets.all(16), children: [
+      Text(tr('તમારું સ્વાગત છે!'), style: TextStyle(fontSize: 23, fontWeight: FontWeight.bold)),
+      const SizedBox(height: 16), Text(tr('વાહન ખરીદો'), style: TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
+      const SizedBox(height: 8),
+      GridView.count(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), crossAxisCount: 2, childAspectRatio: 1.7,
+        children: [ ('કાર', Icons.directions_car), ('બાઈક', Icons.two_wheeler), ('ટ્રક', Icons.local_shipping), ('ટ્રેક્ટર', Icons.agriculture) ].map((item) => Card(
+          child: Builder(builder: (context) => InkWell(onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => BuyVehiclesPage(category: item.$1))),
+            child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(item.$2, size: 34), const SizedBox(height: 6), Text(categoryLabel(item.$1))]))),
+        )).toList()),
+      const SizedBox(height: 18),
+      FilledButton.icon(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SellVehiclePage())), icon: const Icon(Icons.add_a_photo), label: Text(tr('વાહન વેચો'))),
+      const SizedBox(height: 12), Text(tr('નિયમ: પોતાની જાહેરાતનો માલિક જ તેને ડિલીટ કરી શકશે.'), textAlign: TextAlign.center),
+    ]),
+  );
+}
+
+class BuyVehiclesPage extends StatefulWidget {
+  final String category;
+  const BuyVehiclesPage({super.key, required this.category});
+  @override
+  State<BuyVehiclesPage> createState() => _BuyVehiclesPageState();
+}
+
+class _BuyVehiclesPageState extends State<BuyVehiclesPage> {
+  final searchController = TextEditingController();
+  final minPriceController = TextEditingController();
+  final maxPriceController = TextEditingController();
+  String searchText = '';
+  String sortOrder = 'newest';
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        appBar: AppBar(title: const Text("Gujarat Vehicle Market")),
-        body: const Center(child: Text("Welcome")),
-      ),
-    );
+  void dispose() {
+    searchController.dispose();
+    minPriceController.dispose();
+    maxPriceController.dispose();
+    super.dispose();
   }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: Text('${categoryLabel(widget.category)} ${tr('વાહન ખરીદો')}'), actions: const [LanguageMenu()]),
+    body: Column(children: [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+        child: TextField(
+          controller: searchController,
+          onChanged: (value) => setState(() => searchText = value.trim().toLowerCase()),
+          decoration: InputDecoration(
+            hintText: tr('નામ, મોડેલ અથવા શહેર શોધો'),
+            prefixIcon: const Icon(Icons.search),
+            suffixIcon: searchText.isEmpty ? null : IconButton(
+              tooltip: tr('શોધ સાફ કરો'),
+              icon: const Icon(Icons.close),
+              onPressed: () { searchController.clear(); setState(() => searchText = ''); },
+            ),
+            border: const OutlineInputBorder(),
+          ),
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+        child: Column(children: [
+          Row(children: [
+            Expanded(child: TextField(
+              controller: minPriceController,
+              keyboardType: TextInputType.number,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(labelText: tr('ઓછામાં ઓછી કિંમત'), prefixText: '₹ ', border: OutlineInputBorder(), isDense: true),
+            )),
+            const SizedBox(width: 8),
+            Expanded(child: TextField(
+              controller: maxPriceController,
+              keyboardType: TextInputType.number,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(labelText: tr('વધુમાં વધુ કિંમત'), prefixText: '₹ ', border: OutlineInputBorder(), isDense: true),
+            )),
+          ]),
+          const SizedBox(height: 8),
+          Row(children: [
+            Text(tr('ક્રમ ગોઠવો:')),
+            const SizedBox(width: 8),
+            Expanded(child: DropdownButtonFormField<String>(
+              value: sortOrder,
+              isDense: true,
+              decoration: const InputDecoration(border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8)),
+              items: [
+                DropdownMenuItem(value: 'newest', child: Text(tr('નવી જાહેરાત પહેલા'))),
+                DropdownMenuItem(value: 'low', child: Text(tr('ઓછી કિંમત પહેલા'))),
+                DropdownMenuItem(value: 'high', child: Text(tr('વધુ કિંમત પહેલા'))),
+              ],
+              onChanged: (value) => setState(() => sortOrder = value ?? 'newest'),
+            )),
+            if (minPriceController.text.isNotEmpty || maxPriceController.text.isNotEmpty)
+              IconButton(tooltip: tr('કિંમત ફિલ્ટર સાફ કરો'), onPressed: () { minPriceController.clear(); maxPriceController.clear(); setState(() {}); }, icon: const Icon(Icons.filter_alt_off)),
+          ]),
+        ]),
+      ),
+      Expanded(
+        child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          stream: FirebaseFirestore.instance.collection('vehicles').where('category', isEqualTo: widget.category).snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) return Center(child: Text(tr('જાહેરાતો લોડ થઈ શકી નથી. Firebase સેટિંગ તપાસો.')));
+            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+            final minPrice = int.tryParse(minPriceController.text.trim());
+            final maxPrice = int.tryParse(maxPriceController.text.trim());
+            final docs = snapshot.data!.docs.where((doc) {
+              final data = doc.data();
+              final searchable = [data['title'], data['location'], data['description']]
+                  .whereType<String>().join(' ').toLowerCase();
+              final priceValue = data['price'];
+              final price = priceValue is num ? priceValue.toInt() : int.tryParse('$priceValue');
+              if (!searchable.contains(searchText) || price == null) return false;
+              if (minPrice != null && price < minPrice) return false;
+              if (maxPrice != null && price > maxPrice) return false;
+              return true;
+            }).toList();
+            docs.sort((a, b) {
+              final aValue = a.data()['price'];
+              final bValue = b.data()['price'];
+              final aPrice = aValue is num ? aValue.toInt() : int.tryParse('$aValue') ?? 0;
+              final bPrice = bValue is num ? bValue.toInt() : int.tryParse('$bValue') ?? 0;
+              if (sortOrder == 'low') return aPrice.compareTo(bPrice);
+              if (sortOrder == 'high') return bPrice.compareTo(aPrice);
+              final aDate = a.data()['createdAt'];
+              final bDate = b.data()['createdAt'];
+              if (aDate is Timestamp && bDate is Timestamp) return bDate.compareTo(aDate);
+              return 0;
+            });
+            if (docs.isEmpty) return Center(child: Text(
+              searchText.isEmpty ? tr('હાલમાં આ કેટેગરીમાં કોઈ જાહેરાત નથી.') : tr('તમારી શોધ પ્રમાણે કોઈ વાહન મળ્યું નથી.'),
+              textAlign: TextAlign.center,
+            ));
+            return ListView.builder(padding: const EdgeInsets.all(12), itemCount: docs.length, itemBuilder: (context, index) {
+              final doc = docs[index]; final data = doc.data();
+              final isOwner = FirebaseAuth.instance.currentUser?.uid == data['ownerUid'];
+              final photos = List<String>.from(data['imageUrls'] ?? const []);
+              return Card(child: ListTile(
+                leading: photos.isNotEmpty
+                    ? ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.network(photos.first, width: 68, height: 68, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.directions_car)))
+                    : const CircleAvatar(child: Icon(Icons.directions_car)),
+                title: Text(data['title'] ?? tr('વાહન')),
+                subtitle: Text('₹ ${data['price'] ?? '-'} • ${data['location'] ?? '-'}\n${data['description'] ?? ''}'),
+                isThreeLine: true,
+                trailing: isOwner
+                    ? IconButton(tooltip: tr('મારી જાહેરાત ડિલીટ કરો'), icon: const Icon(Icons.delete_outline), onPressed: () => _delete(context, doc.reference))
+                    : IconButton(
+                        tooltip: tr('ચેટ કરો'), icon: const Icon(Icons.chat_bubble_outline),
+                        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChatPage(
+                          vehicleId: doc.id, vehicleTitle: data['title'] ?? tr('વાહન'), sellerUid: data['ownerUid'] ?? '',
+                        ))),
+                      ),
+                onTap: !isOwner && data['sellerPhone'] is String && (data['sellerPhone'] as String).trim().isNotEmpty
+                    ? () => _contactSeller(context, data['sellerPhone'] as String, 'whatsapp') : null,
+              ));
+            });
+          },
+        ),
+      ),
+    ]),
+  );
+
+  Future<void> _contactSeller(BuildContext context, String rawPhone, String method) async {
+    final digits = rawPhone.replaceAll(RegExp(r'\D'), '');
+    if (digits.length != 10) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('સંપર્ક ઉપલબ્ધ નથી.'))));
+      return;
+    }
+    final uri = method == 'call'
+        ? Uri(scheme: 'tel', path: '+91$digits')
+        : Uri.https('wa.me', '/91$digits');
+    try {
+      final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!opened && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('સંપર્ક ઉપલબ્ધ નથી.'))));
+      }
+    } catch (_) {
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('સંપર્ક ઉપલબ્ધ નથી.'))));
+    }
+  }
+
+  Future<void> _delete(BuildContext context, DocumentReference<Map<String, dynamic>> ref) async {
+    final ok = await showDialog<bool>(context: context, builder: (context) => AlertDialog(
+      title: Text(tr('જાહેરાત ડિલીટ કરવી છે?')), content: Text(tr('આ જાહેરાત કાયમી રીતે દૂર થશે.')),
+      actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: Text(tr('રદ કરો'))), FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(tr('ડિલીટ')))],
+    ));
+    if (ok == true) {
+      try { await ref.delete(); } catch (_) { if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('ફક્ત જાહેરાતનો માલિક જ તેને ડિલીટ કરી શકે છે.')))); }
+    }
+  }
+}
+
+class SellVehiclePage extends StatefulWidget {
+  const SellVehiclePage({super.key});
+  @override
+  State<SellVehiclePage> createState() => _SellVehiclePageState();
+}
+
+class _SellVehiclePageState extends State<SellVehiclePage> {
+  final formKey = GlobalKey<FormState>();
+  final title = TextEditingController(), price = TextEditingController(), location = TextEditingController(), description = TextEditingController(), sellerPhone = TextEditingController();
+  String category = categories.first;
+  final ImagePicker picker = ImagePicker();
+  final List<XFile> selectedPhotos = [];
+  bool saving = false;
+  @override
+  void dispose() { title.dispose(); price.dispose(); location.dispose(); description.dispose(); sellerPhone.dispose(); super.dispose(); }
+
+  Future<void> choosePhotos() async {
+    try {
+      final picked = await picker.pickMultiImage(imageQuality: 80, maxWidth: 1600);
+      if (!mounted || picked.isEmpty) return;
+      setState(() {
+        selectedPhotos
+          ..clear()
+          ..addAll(picked.take(5));
+      });
+      if (picked.length > 5 && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('વધુમાં વધુ 5 ફોટા પસંદ કરી શકાય.'))));
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('ફોટા પસંદ થઈ શક્યા નહીં: $e')));
+    }
+  }
+
+  Future<List<String>> uploadPhotos(String uid) async {
+    final urls = <String>[];
+    for (var i = 0; i < selectedPhotos.length; i++) {
+      final file = File(selectedPhotos[i].path);
+      final ref = FirebaseStorage.instance.ref().child('vehicle_photos/$uid/${DateTime.now().microsecondsSinceEpoch}_$i.jpg');
+      final task = await ref.putFile(file, SettableMetadata(contentType: selectedPhotos[i].mimeType ?? 'image/jpeg'));
+      urls.add(await task.ref.getDownloadURL());
+    }
+    return urls;
+  }
+
+  Future<void> save() async {
+    if (!formKey.currentState!.validate()) return;
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    setState(() => saving = true);
+    try {
+      final imageUrls = await uploadPhotos(user.uid);
+      await FirebaseFirestore.instance.collection('vehicles').add({
+        'title': title.text.trim(), 'category': category, 'price': int.parse(price.text.trim()),
+        'location': location.text.trim(), 'description': description.text.trim(),
+        'ownerUid': user.uid, 'sellerPhone': sellerPhone.text.trim(), 'imageUrls': imageUrls, 'createdAt': FieldValue.serverTimestamp(),
+      });
+      if (mounted) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('તમારી જાહેરાત સફળતાપૂર્વક ઉમેરાઈ.')))); Navigator.pop(context); }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('જાહેરાત સેવ થઈ નથી: $e')));
+    } finally { if (mounted) setState(() => saving = false); }
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(appBar: AppBar(title: Text(tr('વાહન વેચો')), actions: const [LanguageMenu()]),
+    body: Form(key: formKey, child: ListView(padding: const EdgeInsets.all(16), children: [
+      DropdownButtonFormField<String>(value: category, decoration: InputDecoration(labelText: tr('વાહનનો પ્રકાર'), border: OutlineInputBorder()), items: categories.map((c) => DropdownMenuItem(value: c, child: Text(categoryLabel(c)))).toList(), onChanged: (v) => setState(() => category = v ?? categories.first)),
+      const SizedBox(height: 12), _field(title, tr('વાહનનું નામ / મોડેલ')), const SizedBox(height: 12),
+      _field(price, tr('કિંમત (રૂપિયામાં)'), number: true), const SizedBox(height: 12),
+      _field(location, tr('શહેર / ગામ')), const SizedBox(height: 12),
+      TextFormField(controller: sellerPhone, keyboardType: TextInputType.phone, maxLength: 10, decoration: InputDecoration(labelText: tr('વેચનારનો સંપર્ક નંબર (વૈકલ્પિક)'), prefixText: '+91 ', border: const OutlineInputBorder()), validator: (value) { final v = value?.trim() ?? ''; if (v.isNotEmpty && !RegExp(r'^\d{10}$').hasMatch(v)) return tr('યોગ્ય 10 અંકનો નંબર લખો.'); return null; }),
+      Text(tr('આ નંબર ખરીદદારોને દેખાશે.'), style: Theme.of(context).textTheme.bodySmall), const SizedBox(height: 12),
+      _field(description, tr('વાહનની માહિતી'), lines: 4), const SizedBox(height: 18),
+      OutlinedButton.icon(
+        onPressed: saving ? null : choosePhotos,
+        icon: const Icon(Icons.photo_library_outlined),
+        label: Text(tr('વાહનના ફોટા પસંદ કરો (વધુમાં વધુ 5)')),
+      ),
+      if (selectedPhotos.isNotEmpty) ...[
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 92,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: selectedPhotos.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            itemBuilder: (context, index) => Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.file(File(selectedPhotos[index].path), width: 92, height: 92, fit: BoxFit.cover),
+                ),
+                Positioned(
+                  top: 2, right: 2,
+                  child: IconButton.filledTonal(
+                    visualDensity: VisualDensity.compact,
+                    iconSize: 18,
+                    onPressed: saving ? null : () => setState(() => selectedPhotos.removeAt(index)),
+                    icon: const Icon(Icons.close),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+      const SizedBox(height: 18),
+      FilledButton(onPressed: saving ? null : save, child: Text(saving ? tr('સેવ થઈ રહ્યું છે...') : tr('જાહેરાત ઉમેરો'))),
+    ])));
+
+  Widget _field(TextEditingController controller, String label, {bool number = false, int lines = 1}) => TextFormField(
+    controller: controller, keyboardType: number ? TextInputType.number : TextInputType.text, maxLines: lines,
+    decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()),
+    validator: (value) { if (value == null || value.trim().isEmpty) return tr('આ માહિતી લખો.'); if (number && int.tryParse(value.trim()) == null) return tr('યોગ્ય કિંમત લખો.'); return null; },
+  );
+}
+
+
+class ChatPage extends StatefulWidget {
+  final String vehicleId, vehicleTitle, sellerUid;
+  const ChatPage({super.key, required this.vehicleId, required this.vehicleTitle, required this.sellerUid});
+  @override
+  State<ChatPage> createState() => _ChatPageState();
+}
+
+class _ChatPageState extends State<ChatPage> {
+  final controller = TextEditingController();
+  bool sending = false;
+  String get uid => FirebaseAuth.instance.currentUser!.uid;
+  String get roomId {
+    final pair = [uid, widget.sellerUid]..sort();
+    return '${widget.vehicleId}_${pair.join('_')}';
+  }
+  DocumentReference<Map<String, dynamic>> get room => FirebaseFirestore.instance.collection('chatRooms').doc(roomId);
+
+  Future<void> send() async {
+    final message = controller.text.trim();
+    if (message.isEmpty || sending || widget.sellerUid.isEmpty || uid == widget.sellerUid) return;
+    setState(() => sending = true);
+    try {
+      await FirebaseFirestore.instance.runTransaction((tx) async {
+        final roomSnap = await tx.get(room);
+        if (!roomSnap.exists) {
+          tx.set(room, {'participants': [uid, widget.sellerUid], 'vehicleId': widget.vehicleId,
+            'vehicleTitle': widget.vehicleTitle, 'updatedAt': FieldValue.serverTimestamp(), 'lastMessage': message});
+        } else {
+          tx.update(room, {'updatedAt': FieldValue.serverTimestamp(), 'lastMessage': message});
+        }
+      });
+      await room.collection('messages').add({'senderUid': uid, 'text': message, 'createdAt': FieldValue.serverTimestamp()});
+      controller.clear();
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${tr('સમસ્યા આવી:')} $e')));
+    } finally { if (mounted) setState(() => sending = false); }
+  }
+
+  @override
+  void dispose() { controller.dispose(); super.dispose(); }
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: Text('${tr('ચેટ કરો')} • ${widget.vehicleTitle}'), actions: const [LanguageMenu()]),
+    body: Column(children: [
+      Expanded(child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: room.collection('messages').orderBy('createdAt').snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) return Center(child: Text(tr('જાહેરાતો લોડ થઈ શકી નથી. Firebase સેટિંગ તપાસો.')));
+          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+          if (snapshot.data!.docs.isEmpty) return Center(child: Text(tr('હજુ કોઈ સંદેશ નથી.')));
+          return ListView(padding: const EdgeInsets.all(12), children: snapshot.data!.docs.map((doc) {
+            final data = doc.data(); final mine = data['senderUid'] == uid;
+            return Align(alignment: mine ? Alignment.centerRight : Alignment.centerLeft, child: Container(
+              constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * .78),
+              margin: const EdgeInsets.symmetric(vertical: 4), padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: mine ? Theme.of(context).colorScheme.primaryContainer : Theme.of(context).colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(14)), child: Text(data['text'] ?? ''),
+            ));
+          }).toList());
+        },
+      )),
+      SafeArea(child: Padding(padding: const EdgeInsets.fromLTRB(10, 6, 10, 10), child: Row(children: [
+        Expanded(child: TextField(controller: controller, minLines: 1, maxLines: 4,
+          decoration: InputDecoration(hintText: tr('સંદેશ લખો'), border: const OutlineInputBorder()))),
+        const SizedBox(width: 8), IconButton.filled(onPressed: sending ? null : send,
+          icon: sending ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.send)),
+      ]))),
+    ]),
+  );
 }
